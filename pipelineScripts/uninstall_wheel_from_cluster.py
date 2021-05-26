@@ -4,7 +4,7 @@ import os
 
 DBRKS_REQ_HEADERS = {
     'Authorization': 'Bearer ' + os.environ['DBRKS_BEARER_TOKEN'],
-    'X-Databricks-Azure-Workspace-Resource-Id': '/subscriptions/6392d180-7beb-4851-8c38-8d32bb52555f/resourceGroups/devopsfordatabricks/providers/Microsoft.Databricks/workspaces/devopsfordatabricks_dbx',
+    'X-Databricks-Azure-Workspace-Resource-Id': '/subscriptions/[subscription id]/resourceGroups/devopsfordatabricks/providers/Microsoft.Databricks/workspaces/[workspace name]',
     'X-Databricks-Azure-SP-Management-Token': os.environ['DBRKS_MANAGEMENT_TOKEN']}
 
 DBRKS_REQ_BODY = {
@@ -14,7 +14,7 @@ DBRKS_REQ_BODY = {
 DBRKS_UNINSTALL_ENDPOINT = 'api/2.0/libraries/uninstall'
 
 response = requests.post(
-    'https://adb-3843427314946365.5.azuredatabricks.net/' + DBRKS_UNINSTALL_ENDPOINT, headers=DBRKS_REQ_HEADERS, json=DBRKS_REQ_BODY
+    'https://[databricks instance].azuredatabricks.net/' + DBRKS_UNINSTALL_ENDPOINT, headers=DBRKS_REQ_HEADERS, json=DBRKS_REQ_BODY
 )
 if response.status_code != 200:
     print(response.content)
