@@ -1,0 +1,235 @@
+trigger:
+  branches:
+   include:
+    - development
+  paths:
+    include:
+    - notebooks/*
+     
+pool:
+  vmImage: 'ubuntu-latest'
+
+variables:
+- group: devops-for-dbx-vg
+
+jobs:
+
+- job: set_up_databricks_auth
+  steps:
+
+
+
+  - task: AzureKeyVault@1
+    inputs:
+      azureSubscription: 'AdvancingAnalytics_6000(6392d180-7beb-4851-8c38-8d32bb52555f)'
+      KeyVaultName: 'devops-for-dbx-kv'
+      SecretsFilter: '*'
+      RunAsPreJob: false
+
+  - task: CmdLine@2
+    displayName: "install python packages"    
+    inputs:
+      script: |
+        pip install requests
+        pip install azure-identity
+        pip install azure.keyvault.secrets
+
+  - task: PythonScript@0
+    displayName: "set token auth URL and headers"
+    inputs:
+      scriptSource: 'inline'
+      script: |
+         TOKEN_BASE_URL = 'https://login.microsoftonline.com/' + '$(SVCDirectoryID)' + '/oauth2/token'
+         TOKEN_REQ_HEADERS = {
+         'Content-Type': 'application/x-www-form-urlencoded'}
+         print("##vso[task.setvariable variable=TOKEN_BASE_URL]{b}".format(b=TOKEN_BASE_URL))
+         print("##vso[task.setvariable variable=TOKEN_REQ_HEADERS]{b}".format(b=TOKEN_REQ_HEADERS))
+
+  - task: PythonScript@0
+    displayName: "set token auth URL and token body"
+    name: "auth_tokens"
+    inputs:
+      scriptSource: 'inline'
+      script: |
+        import requests
+        import json
+        import os
+        TOKEN_REQ_BODY = {
+          'grant_type': 'client_credentials',
+          'client_id': '$(SVCApplicationID)',
+          'client_secret': '$(SVCSecretKey)'}
+
+        def dbrks_management_token():
+         TOKEN_REQ_BODY['resource'] = 'https://management.core.windows.net/'
+         response = requests.get('$(TOKEN_BASE_URL)', headers=$(TOKEN_REQ_HEADERS), data=TOKEN_REQ_BODY)
+         if response.status_code == 200:
+          print(response.status_code)
+         else:
+          raise Exception(response.text)
+         return response.json()['access_token']
+
+        def dbrks_bearer_token():
+         TOKEN_REQ_BODY['resource'] = '2ff814a6-3304-4ab8-85cb-cd0e6f879c1d'
+         response = requests.get('$(TOKEN_BASE_URL)', headers=$(TOKEN_REQ_HEADERS), data=TOKEN_REQ_BODY)
+         if response.status_code == 200:
+          print(response.status_code)
+         else:
+          raise Exception(response.text)
+         return response.json()['access_token']
+        
+        DBRKS_BEARER_TOKEN = dbrks_bearer_token()
+        DBRKS_MANAGEMENT_TOKEN = dbrks_management_token()
+        print("##vso[task.setvariable variable=DBRKS_BEARER_TOKEN;isOutput=true;]{b}".format(b=DBRKS_BEARER_TOKEN))
+        print("##vso[task.setvariable variable=DBRKS_MANAGEMENT_TOKEN;isOutput=true;]{b}".format(b=DBRKS_MANAGEMENT_TOKEN))
+
+# - job: create_cluster
+#   dependsOn: 
+#      - set_up_databricks_auth
+#   variables: 
+#      DBRKS_MANAGEMENT_TOKEN: $[dependencies.set_up_databricks_auth.outputs['auth_tokens.DBRKS_MANAGEMENT_TOKEN']]
+#      DBRKS_BEARER_TOKEN: $[dependencies.set_up_databricks_auth.outputs['auth_tokens.DBRKS_BEARER_TOKEN']]
+
+#   steps:
+#     - task: AzureKeyVault@1
+#       inputs:
+#         azureSubscription: 'AdvancingAnalytics_6000(6392d180-7beb-4851-8c38-8d32bb52555f)'
+#         KeyVaultName: 'devops-for-dbx-kv'
+#         SecretsFilter: '*'
+#         RunAsPreJob: false
+       
+#     - task: Bash@3
+#       inputs:
+#        targetType: 'inline'
+#        script: 'ls'
+
+#     - task: PythonScript@0
+#       displayName: "create cluster"
+#       inputs:
+#         scriptSource: 'filePath' 
+#         scriptPath: pipelineScripts/create_cluster.py
+#       env:
+#         DBRKS_BEARER_TOKEN: $(DBRKS_BEARER_TOKEN)
+#         DBRKS_MANAGEMENT_TOKEN: $(DBRKS_MANAGEMENT_TOKEN)
+#         DefaultWorkingDirectory: $(System.DefaultWorkingDirectory)
+
+- job: upload_notebooks
+  dependsOn: 
+     - set_up_databricks_auth
+    #  - create_cluster
+  variables: 
+     DBRKS_MANAGEMENT_TOKEN: $[dependencies.set_up_databricks_auth.outputs['auth_tokens.DBRKS_MANAGEMENT_TOKEN']]
+     DBRKS_BEARER_TOKEN: $[dependencies.set_up_databricks_auth.outputs['auth_tokens.DBRKS_BEARER_TOKEN']]
+
+  steps:
+    - task: AzureKeyVault@1
+      inputs:
+        azureSubscription: 'AdvancingAnalytics_6000(6392d180-7beb-4851-8c38-8d32bb52555f)'
+        KeyVaultName: 'devops-for-dbx-kv'
+        SecretsFilter: '*'
+        RunAsPreJob: false
+       
+    - task: Bash@3
+      inputs:
+       targetType: 'inline'
+       script: 'ls'
+
+    - task: PythonScript@0
+      displayName: "upload notebooks to DBX"
+      inputs:
+        scriptSource: 'filePath' 
+        scriptPath: pipelineScripts/upload_notebooks_to_dbx.py
+      env:
+        DBRKS_BEARER_TOKEN: $(DBRKS_BEARER_TOKEN)
+        DBRKS_MANAGEMENT_TOKEN: $(DBRKS_MANAGEMENT_TOKEN)
+        DefaultWorkingDirectory: $(System.DefaultWorkingDirectory)
+
+
+- job: upload_wheel_to_databricks
+  dependsOn: 
+     - set_up_databricks_auth
+         #  - create_cluster
+  variables: 
+     DBRKS_MANAGEMENT_TOKEN: $[dependencies.set_up_databricks_auth.outputs['auth_tokens.DBRKS_MANAGEMENT_TOKEN']]
+     DBRKS_BEARER_TOKEN: $[dependencies.set_up_databricks_auth.outputs['auth_tokens.DBRKS_BEARER_TOKEN']]
+  steps:
+
+    - task: AzureKeyVault@1
+      inputs:
+        azureSubscription: 'AdvancingAnalytics_6000(6392d180-7beb-4851-8c38-8d32bb52555f)'
+        KeyVaultName: 'devops-for-dbx-kv'
+        SecretsFilter: '*'
+        RunAsPreJob: false
+
+    - task: CmdLine@2
+      displayName: "install python packages"    
+      inputs:
+        script: |
+          pip3 install pytest-cov
+          pip3 install pytest
+          pip3 install pyspark
+          pip3 install mock
+          pip3 install requests
+          pip3 install azure-identity
+          pip3 install azure.keyvault.secrets
+
+    - task:  CmdLine@2
+      displayName: "install wheel setup tools"
+      inputs:
+        script: |
+          python -m pip install --user --upgrade setuptools wheel
+
+    - task:  CmdLine@2
+      displayName: "create wheel"
+      inputs:
+        script: |
+          cd "wheel"
+          python setup.py sdist bdist_wheel
+
+
+    - task: PythonScript@0
+      displayName: "upload wheel to DBFS"
+      inputs:
+        scriptSource: 'filePath' 
+        scriptPath: pipelineScripts/upload_wheel_to_dbfs.py
+      env:
+        DBRKS_BEARER_TOKEN: $(DBRKS_BEARER_TOKEN)
+        DBRKS_MANAGEMENT_TOKEN: $(DBRKS_MANAGEMENT_TOKEN)
+        DefaultWorkingDirectory: $(System.DefaultWorkingDirectory)
+
+
+    - task: PythonScript@0
+      displayName: "uninstall wheel from cluster"
+      inputs:
+        scriptSource: 'filepath'
+        scriptPath: pipelineScripts/uninstall_wheel_from_cluster.py
+      env:
+        DBRKS_BEARER_TOKEN: $(DBRKS_BEARER_TOKEN)
+        DBRKS_MANAGEMENT_TOKEN: $(DBRKS_MANAGEMENT_TOKEN)
+        DBX-WORKSPACE-URL: $(DbxWorkspaceUrl)
+     
+    - task: PythonScript@0
+      displayName: "restart cluster"
+      inputs:
+        scriptSource: 'filepath'
+        scriptPath: pipelineScripts/restart_cluster.py
+      env:
+        DBRKS_BEARER_TOKEN: $(DBRKS_BEARER_TOKEN)
+        DBRKS_MANAGEMENT_TOKEN: $(DBRKS_MANAGEMENT_TOKEN)
+  
+    - task: PythonScript@0
+      displayName: "install wheel"
+      inputs:
+        scriptSource: 'filepath'
+        scriptPath: pipelineScripts/install_wheel.py
+      env:
+        DBRKS_BEARER_TOKEN: $(DBRKS_BEARER_TOKEN)
+        DBRKS_MANAGEMENT_TOKEN: $(DBRKS_MANAGEMENT_TOKEN)
+  
+    - task: PythonScript@0
+      displayName: "check wheel status"
+      inputs:
+        scriptSource: 'filepath'
+        scriptPath: pipelineScripts/check_wheel_status.py
+      env:
+        DBRKS_BEARER_TOKEN: $(DBRKS_BEARER_TOKEN)
+        DBRKS_MANAGEMENT_TOKEN: $(DBRKS_MANAGEMENT_TOKEN)
