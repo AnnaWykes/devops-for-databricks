@@ -5,7 +5,7 @@ import json
 
 DBRKS_REQ_HEADERS = {
     'Authorization': 'Bearer ' + os.environ['DBRKS_BEARER_TOKEN'],
-    'X-Databricks-Azure-Workspace-Resource-Id': '/subscriptions/6392d180-7beb-4851-8c38-8d32bb52555f/resourceGroups/devopsfordatabricks/providers/Microsoft.Databricks/workspaces/devopsfordatabricks_dbx',
+    'X-Databricks-Azure-Workspace-Resource-Id': '/subscriptions/[subscriptionid]/resourceGroups/devopsfordatabricks/providers/Microsoft.Databricks/workspaces/[workspace name]',
     'X-Databricks-Azure-SP-Management-Token': os.environ['DBRKS_MANAGEMENT_TOKEN']}
 
 def create_cluster():
@@ -21,7 +21,7 @@ def create_cluster():
     }
   }"""
 
-    response = requests.post("https://adb-3843427314946365.5.azuredatabricks.net/" + DBRKS_START_ENDPOINT, headers=DBRKS_REQ_HEADERS, json=json.loads(postjson))
+    response = requests.post("https://[databricks instance].azuredatabricks.net/" + DBRKS_START_ENDPOINT, headers=DBRKS_REQ_HEADERS, json=json.loads(postjson))
     if response.status_code != 200:
         raise Exception(response.text)
     
@@ -30,7 +30,7 @@ def create_cluster():
 
 def list_clusters():
     DBRKS_ENDPOINT = 'api/2.0/clusters/list'
-    response = requests.get("https://adb-3843427314946365.5.azuredatabricks.net/" + DBRKS_ENDPOINT, headers=DBRKS_REQ_HEADERS)
+    response = requests.get("https://[databricks instance].azuredatabricks.net/" + DBRKS_ENDPOINT, headers=DBRKS_REQ_HEADERS)
     if response.status_code != 200:
         raise Exception(response.content)
     else:
@@ -39,7 +39,7 @@ def list_clusters():
 def get_dbrks_cluster_info():
     DBRKS_CLUSTER_ID = {'cluster_id': os.environ["DBRKS_CLUSTER_ID"]}
     DBRKS_INFO_ENDPOINT = 'api/2.0/clusters/get'
-    response = requests.get('https://adb-3843427314946365.5.azuredatabricks.net/' + DBRKS_INFO_ENDPOINT, headers=DBRKS_REQ_HEADERS, params=DBRKS_CLUSTER_ID)
+    response = requests.get('https://[databricks instance].azuredatabricks.net/' + DBRKS_INFO_ENDPOINT, headers=DBRKS_REQ_HEADERS, params=DBRKS_CLUSTER_ID)
     if response.status_code == 200:
         return json.loads(response.content)
     else:
