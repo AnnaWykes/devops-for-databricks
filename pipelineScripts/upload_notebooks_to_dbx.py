@@ -4,13 +4,13 @@ from os.path import isfile, join
 from os import listdir
 
 
-dbrks_create_dir_url = "https://adb-3843427314946365.5.azuredatabricks.net/api/2.0/workspace/mkdirs"
-dbrks_import_rest_url = "https://adb-3843427314946365.5.azuredatabricks.net/api/2.0/workspace/import"
+dbrks_create_dir_url = "https://[databricks instance].azuredatabricks.net/api/2.0/workspace/mkdirs"
+dbrks_import_rest_url = "https://[databricks instance].azuredatabricks.net/api/2.0/workspace/import"
 
 
 DBRKS_REQ_HEADERS = {
     'Authorization': 'Bearer ' + os.environ['DBRKS_BEARER_TOKEN'],
-    'X-Databricks-Azure-Workspace-Resource-Id': '/subscriptions/6392d180-7beb-4851-8c38-8d32bb52555f/resourceGroups/devopsfordatabricks/providers/Microsoft.Databricks/workspaces/devopsfordatabricks_dbx',
+    'X-Databricks-Azure-Workspace-Resource-Id': '/subscriptions/[subscriptionid]/resourceGroups/devopsfordatabricks/providers/Microsoft.Databricks/workspaces/[workspace name]',
     'X-Databricks-Azure-SP-Management-Token': os.environ['DBRKS_MANAGEMENT_TOKEN']}
 
 notebooks = os.environ['DefaultWorkingDirectory'] + "/notebooks/"
