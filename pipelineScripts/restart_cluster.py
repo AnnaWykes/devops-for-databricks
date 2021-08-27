@@ -8,7 +8,7 @@ DBRKS_REQ_HEADERS = {
     'X-Databricks-Azure-Workspace-Resource-Id': '/subscriptions/[subscriptionid]/resourceGroups/devopsfordatabricks/providers/Microsoft.Databricks/workspaces/[workspace name]',
     'X-Databricks-Azure-SP-Management-Token': os.environ['DBRKS_MANAGEMENT_TOKEN']}
 
-DBRKS_CLUSTER_ID = {'cluster_id': '0423-124042-plugs864'}
+DBRKS_CLUSTER_ID = {'cluster_id': '[clusterid]'}
 
 
 def get_dbrks_cluster_info():
