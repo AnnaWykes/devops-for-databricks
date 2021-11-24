@@ -137,7 +137,7 @@ jobs:
        script: 'ls'
 
     - task: PythonScript@0
-      displayName: "upload notebooks to DBX"
+      displayName: "uplode notebooks to DBX"
       inputs:
         scriptSource: 'filePath' 
         scriptPath: pipelineScripts/upload_notebooks_to_dbx.py
@@ -158,7 +158,7 @@ jobs:
 
     - task: AzureKeyVault@1
       inputs:
-        azureSubscription: 'AdvancingAnalytics_6000(6392d180-7beb-4851-8c38-8d32bb52555f)'
+        azureSubscription: '[subscription]'
         KeyVaultName: 'devops-for-dbx-kv'
         SecretsFilter: '*'
         RunAsPreJob: false
