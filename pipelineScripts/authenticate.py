@@ -2,13 +2,13 @@ import requests
 import json
 import os
 
+
+TOKEN_BASE_URL = 'https://login.microsoftonline.com/' + os.environ['SVCDirectoryID'] + '/oauth2/token'
+TOKEN_REQ_HEADERS = {'Content-Type': 'application/x-www-form-urlencoded'}
 TOKEN_REQ_BODY = {
        'grant_type': 'client_credentials',
        'client_id': os.environ['SVCApplicationID'],
        'client_secret': os.environ['SVCSecretKey']}
-SVC_DIRECTORY_ID = os.environ['SVCDirectoryID']
-TOKEN_BASE_URL = 'https://login.microsoftonline.com/' + SVC_DIRECTORY_ID + '/oauth2/token'
-TOKEN_REQ_HEADERS = {'Content-Type': 'application/x-www-form-urlencoded'}
 
 
 
@@ -37,6 +37,8 @@ DBRKS_MANAGEMENT_TOKEN = dbrks_management_token()
 os.environ['DBRKS_BEARER_TOKEN'] = DBRKS_BEARER_TOKEN 
 os.environ['DBRKS_MANAGEMENT_TOKEN'] = DBRKS_MANAGEMENT_TOKEN 
 
-dbrks_bearer_token()
-print(os.environ['DBRKS_BEARER_TOKEN'])
-print(os.environ['DBRKS_MANAGEMENT_TOKEN'])
+print("DBRKS_BEARER_TOKEN",os.environ['DBRKS_BEARER_TOKEN'])
+print("DBRKS_MANAGEMENT_TOKEN",os.environ['DBRKS_MANAGEMENT_TOKEN'])
+print("##vso[task.setvariable variable=DBRKS_BEARER_TOKEN;isOutput=true;]{b}".format(b=DBRKS_BEARER_TOKEN))
+print("##vso[task.setvariable variable=DBRKS_MANAGEMENT_TOKEN;isOutput=true;]{b}".format(b=DBRKS_MANAGEMENT_TOKEN))
+   
