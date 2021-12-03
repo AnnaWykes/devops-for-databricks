@@ -22,5 +22,5 @@
 ***SVCSecretKey***: Secret value for the Service Principal<br>
 ***WorkspaceName***: Name of the Databricks Workspace<br>
 
-## Pipeline Run<br>
+## Pipeline Run Example<br>
 ![Pipeline Run Sample!](/pipeline-screenshot.png "Pipeline Run Sample")
