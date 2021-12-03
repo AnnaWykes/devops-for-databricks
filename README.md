@@ -12,7 +12,7 @@
 7.	Run the Pipeline
 
 
-## Pipeline will need a Azure Secret Vault with the following secrets.<br>
+## The Pipeline will need an Azure Secret Vault with the following secrets.<br>
 
 ***DBXInstance***: Databricks instance, eg: adb-631237481529976.16<br>
 ***ResourceGroup***: Resource Group where Databricks instance is<br>
