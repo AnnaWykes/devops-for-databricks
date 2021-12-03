@@ -12,13 +12,13 @@
 7.	Run the Pipeline
 
 
-## Pipeline will need a Azure Secret Vault with the following secrets.
-<br>
-DBXInstance: Databricks instance, eg: adb-631237481529976.16<br>
-ResourceGroup: Resource Group where Databricks instance is<br>
-SubscriptionID: Subscription ID where everything runs in Azure<br>
-SVCApplicationID: Application (client) ID for the Service Principal<br>
-SVCDirectoryID: Directory (tenant) ID for the Service Principal<br>
-SVCSecretKey: Secret value for the Service Principal<br>
-WorkspaceName: Name of the Databricks Workspace<br>
+## Pipeline will need a Azure Secret Vault with the following secrets.<br>
+
+***DBXInstance***: Databricks instance, eg: adb-631237481529976.16<br>
+***ResourceGroup***: Resource Group where Databricks instance is<br>
+***SubscriptionID***: Subscription ID where everything runs in Azure<br>
+***SVCApplicationID***: Application (client) ID for the Service Principal<br>
+***SVCDirectoryID***: Directory (tenant) ID for the Service Principal<br>
+***SVCSecretKey***: Secret value for the Service Principal<br>
+***WorkspaceName***: Name of the Databricks Workspace<br>
 
