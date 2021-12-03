@@ -1,7 +1,7 @@
 trigger:
   branches:
    include:
-    - pablo
+    - main
   paths:
     include:
     - notebooks/*
@@ -183,12 +183,11 @@ stages:
           env:
             DBRKS_BEARER_TOKEN: $(DBRKS_BEARER_TOKEN)
             DBRKS_MANAGEMENT_TOKEN: $(DBRKS_MANAGEMENT_TOKEN)
-            DBRKS_CLUSTER_ID: $(DBRKS_CLUSTER_ID')
             DBRKS_SUBSCRIPTION_ID: '$(SubscriptionID)'
             DBRKS_INSTANCE: '$(DBXInstance)'
             DBRKS_RESOURCE_GROUP: '$(ResourceGroup)'
             DBRKS_WORKSPACE_NAME: '$(WorkspaceName)'
-            DefaultWorkingDirectory: $(System.DefaultWorkingDirectory)
+            SYSTEM_ARTIFACTSDIRECTORY: $(System.ArtifactsDirectory)
 
 
     - job: create_cluster
@@ -269,7 +268,17 @@ stages:
             DBRKS_RESOURCE_GROUP: '$(ResourceGroup)'
             DBRKS_WORKSPACE_NAME: '$(WorkspaceName)'
             
-            
+    - job: delete_cluster
+      dependsOn: 
+        - set_up_databricks_auth
+        - create_cluster
+        - install_wheel_in_databricks_cluster
+      variables: 
+        DBRKS_MANAGEMENT_TOKEN: $[dependencies.set_up_databricks_auth.outputs['auth_tokens.DBRKS_MANAGEMENT_TOKEN']]
+        DBRKS_BEARER_TOKEN: $[dependencies.set_up_databricks_auth.outputs['auth_tokens.DBRKS_BEARER_TOKEN']]
+        DBRKS_CLUSTER_ID: $[dependencies.create_cluster.outputs['create_cluster.DBRKS_CLUSTER_ID']]
+
+      steps:                   
         - task: PythonScript@0
           displayName: "delete cluster"
           inputs:
