@@ -4,15 +4,15 @@ import os
 
 DBRKS_REQ_HEADERS = {
     'Authorization': 'Bearer ' + os.environ['DBRKS_BEARER_TOKEN'],
-    'X-Databricks-Azure-Workspace-Resource-Id': '/subscriptions/6392d180-7beb-4851-8c38-8d32bb52555f/resourceGroups/devopsfordatabricks/providers/Microsoft.Databricks/workspaces/devopsfordatabricks_dbx',
+    'X-Databricks-Azure-Workspace-Resource-Id': '/subscriptions/'+ os.environ['DBRKS_SUBSCRIPTION_ID'] +'/resourceGroups/'+ os.environ['DBRKS_RESOURCE_GROUP'] +'/providers/Microsoft.Databricks/workspaces/' + os.environ['DBRKS_WORKSPACE_NAME'],
     'X-Databricks-Azure-SP-Management-Token': os.environ['DBRKS_MANAGEMENT_TOKEN']}
 
-DBRKS_CLUSTER_ID = {'cluster_id': '0423-124042-plugs864'}
+DBRKS_CLUSTER_ID = {'cluster_id': os.environ["DBRKS_CLUSTER_ID"]}
 
 
 def get_dbrks_libraries_status():
     DBRKS_LIBRARIES_ENDPOINT = 'api/2.0/libraries/cluster-status'
-    response = requests.get("https://adb-3843427314946365.5.azuredatabricks.net/" + DBRKS_LIBRARIES_ENDPOINT, headers=DBRKS_REQ_HEADERS, params=DBRKS_CLUSTER_ID)
+    response = requests.get("https://"+os.environ['DBRKS_INSTANCE']+".azuredatabricks.net/" + DBRKS_LIBRARIES_ENDPOINT, headers=DBRKS_REQ_HEADERS, params=DBRKS_CLUSTER_ID)
     if response.status_code != 200:
         raise Exception(response.content)
     else:

@@ -5,8 +5,10 @@ import json
 
 DBRKS_REQ_HEADERS = {
     'Authorization': 'Bearer ' + os.environ['DBRKS_BEARER_TOKEN'],
-    'X-Databricks-Azure-Workspace-Resource-Id': '/subscriptions/[subscriptionid]/resourceGroups/devopsfordatabricks/providers/Microsoft.Databricks/workspaces/[workspace name]',
+    'X-Databricks-Azure-Workspace-Resource-Id': '/subscriptions/'+ os.environ['DBRKS_SUBSCRIPTION_ID'] +'/resourceGroups/'+ os.environ['DBRKS_RESOURCE_GROUP'] +'/providers/Microsoft.Databricks/workspaces/' + os.environ['DBRKS_WORKSPACE_NAME'],
     'X-Databricks-Azure-SP-Management-Token': os.environ['DBRKS_MANAGEMENT_TOKEN']}
+
+print("DBRKS_REQ_HEADERS", DBRKS_REQ_HEADERS)
 
 def create_cluster():
     DBRKS_START_ENDPOINT = 'api/2.0/clusters/create'
@@ -21,16 +23,17 @@ def create_cluster():
     }
   }"""
 
-    response = requests.post("https://[databricks instance].azuredatabricks.net/" + DBRKS_START_ENDPOINT, headers=DBRKS_REQ_HEADERS, json=json.loads(postjson))
+    response = requests.post("https://"+os.environ['DBRKS_INSTANCE']+".azuredatabricks.net/" + DBRKS_START_ENDPOINT, headers=DBRKS_REQ_HEADERS, json=json.loads(postjson))
     if response.status_code != 200:
         raise Exception(response.text)
     
     os.environ["DBRKS_CLUSTER_ID"] = response.json()["cluster_id"]    
-    print(response.content)
+    print("##vso[task.setvariable variable=DBRKS_CLUSTER_ID;isOutput=true;]{b}".format(b=os.environ["DBRKS_CLUSTER_ID"]))
+       
 
 def list_clusters():
     DBRKS_ENDPOINT = 'api/2.0/clusters/list'
-    response = requests.get("https://[databricks instance].azuredatabricks.net/" + DBRKS_ENDPOINT, headers=DBRKS_REQ_HEADERS)
+    response = requests.get("https://"+os.environ['DBRKS_INSTANCE']+".azuredatabricks.net/" + DBRKS_ENDPOINT, headers=DBRKS_REQ_HEADERS)
     if response.status_code != 200:
         raise Exception(response.content)
     else:
@@ -39,7 +42,7 @@ def list_clusters():
 def get_dbrks_cluster_info():
     DBRKS_CLUSTER_ID = {'cluster_id': os.environ["DBRKS_CLUSTER_ID"]}
     DBRKS_INFO_ENDPOINT = 'api/2.0/clusters/get'
-    response = requests.get('https://[databricks instance].azuredatabricks.net/' + DBRKS_INFO_ENDPOINT, headers=DBRKS_REQ_HEADERS, params=DBRKS_CLUSTER_ID)
+    response = requests.get("https://"+os.environ['DBRKS_INSTANCE']+".azuredatabricks.net/" + DBRKS_INFO_ENDPOINT, headers=DBRKS_REQ_HEADERS, params=DBRKS_CLUSTER_ID)
     if response.status_code == 200:
         return json.loads(response.content)
     else:

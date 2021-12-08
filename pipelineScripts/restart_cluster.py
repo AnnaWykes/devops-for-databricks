@@ -5,15 +5,15 @@ import json
 
 DBRKS_REQ_HEADERS = {
     'Authorization': 'Bearer ' + os.environ['DBRKS_BEARER_TOKEN'],
-    'X-Databricks-Azure-Workspace-Resource-Id': '/subscriptions/[subscriptionid]/resourceGroups/devopsfordatabricks/providers/Microsoft.Databricks/workspaces/[workspace name]',
+    'X-Databricks-Azure-Workspace-Resource-Id': '/subscriptions/'+ os.environ['DBRKS_SUBSCRIPTION_ID'] +'/resourceGroups/'+ os.environ['DBRKS_RESOURCE_GROUP'] +'/providers/Microsoft.Databricks/workspaces/' + os.environ['DBRKS_WORKSPACE_NAME'],
     'X-Databricks-Azure-SP-Management-Token': os.environ['DBRKS_MANAGEMENT_TOKEN']}
 
-DBRKS_CLUSTER_ID = {'cluster_id': '[clusterid]'}
+DBRKS_CLUSTER_ID = {'cluster_id': os.environ["DBRKS_CLUSTER_ID"]}
 
 
 def get_dbrks_cluster_info():
     DBRKS_INFO_ENDPOINT = 'api/2.0/clusters/get'
-    response = requests.get('https://[databricks instance].azuredatabricks.net/' + DBRKS_INFO_ENDPOINT, headers=DBRKS_REQ_HEADERS, params=DBRKS_CLUSTER_ID)
+    response = requests.get("https://"+os.environ['DBRKS_INSTANCE']+".azuredatabricks.net/" + DBRKS_INFO_ENDPOINT, headers=DBRKS_REQ_HEADERS, params=DBRKS_CLUSTER_ID)
     if response.status_code == 200:
         return json.loads(response.content)
     else:
@@ -22,7 +22,7 @@ def get_dbrks_cluster_info():
 
 def start_dbrks_cluster():
     DBRKS_START_ENDPOINT = 'api/2.0/clusters/start'
-    response = requests.post('https://[databricks instance].azuredatabricks.net/' + DBRKS_START_ENDPOINT, headers=DBRKS_REQ_HEADERS, json=DBRKS_CLUSTER_ID)
+    response = requests.post("https://"+os.environ['DBRKS_INSTANCE']+".azuredatabricks.net/" + DBRKS_START_ENDPOINT, headers=DBRKS_REQ_HEADERS, json=DBRKS_CLUSTER_ID)
     if response.status_code != 200:
         raise Exception(json.loads(response.content))
 
@@ -30,12 +30,12 @@ def start_dbrks_cluster():
 def restart_dbrks_cluster():
     DBRKS_RESTART_ENDPOINT = 'api/2.0/clusters/restart'
     response = requests.post(
-        "https://[databricks instance].azuredatabricks.net/" + DBRKS_RESTART_ENDPOINT,
+        "https://"+os.environ['DBRKS_INSTANCE']+".azuredatabricks.net/" + DBRKS_RESTART_ENDPOINT,
         headers=DBRKS_REQ_HEADERS,
         json=DBRKS_CLUSTER_ID)
     if response.status_code != 200:
         raise Exception(json.loads(response.content))
-
+        
 
 def manage_dbrks_cluster_state():
     await_cluster = True

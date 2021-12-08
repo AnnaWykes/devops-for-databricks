@@ -1,7 +1,7 @@
 trigger:
   branches:
    include:
-    - development
+    - main
   paths:
     include:
     - notebooks/*
@@ -12,227 +12,283 @@ pool:
 variables:
 - group: devops-for-dbx-vg
 
-jobs:
 
-- job: set_up_databricks_auth
-  steps:
+stages:
+  - stage: Build
+    displayName: 'Build Stage'
+    jobs:
+
+    - job: create_and_test_wheel
+      steps:
+        - task: CmdLine@2
+          displayName: "install python packages"    
+          inputs:
+            script: |
+              pip3 install pytest-cov
+              pip3 install pytest
+              pip3 install pytest-azurepipeline
+              pip3 install requests
+
+        - task:  CmdLine@2
+          displayName: "install wheel setup tools"
+          inputs:
+            script: |
+              python -m pip install --user --upgrade setuptools wheel
+
+        - task:  CmdLine@2
+          displayName: "create wheel"
+          inputs:
+            script: |
+              cd "wheel"
+              python setup.py sdist bdist_wheel
+
+        - task: Bash@3
+          displayName: "install wheel"
+          inputs:
+            targetType: 'inline'
+            script: |
+              cd wheel
+              cd dist
+              pip uninstall -y dfordbx-0.0.1-py3-none-any.whl
+              pip install dfordbx-0.0.1-py3-none-any.whl
+
+        - task: Bash@3
+          displayName: "run wheel tests"
+          inputs:
+            targetType: 'inline'
+            script: |
+              cd wheel/tests/unit
+              pytest --doctest-modules --junitxml=junit/test-results.xml --cov=. --cov-report=xml --cov-report=html || true
+
+        - task: PublishTestResults@2
+          displayName: "publish test results"
+          inputs:
+            testResultsFiles: '**/test-*.xml'
+            failTaskOnFailedTests: true
+
+        - task: CopyFiles@2
+          inputs:
+            sourceFolder: 'wheel/dist'
+            contents: '*'
+            targetFolder: '$(Build.ArtifactStagingDirectory)'
+            
+        - task: PublishBuildArtifacts@1
+          inputs:
+            pathToPublish: '$(Build.ArtifactStagingDirectory)'
+            artifactName: dfordbx
 
 
+  - stage: Release
+    displayName: 'Release Stage'
+    dependsOn: Build
 
-  - task: AzureKeyVault@1
-    inputs:
-      azureSubscription: '[subscriptionid]'
-      KeyVaultName: 'devops-for-dbx-kv'
-      SecretsFilter: '*'
-      RunAsPreJob: false
+    jobs:
 
-  - task: CmdLine@2
-    displayName: "install python packages"    
-    inputs:
-      script: |
-        pip install requests
-        pip install azure-identity
-        pip install azure.keyvault.secrets
+    - job: relase_artifact
+      steps:
+        - task: Bash@3
+          displayName: "install dependencies"
+          inputs:
+            targetType: 'inline'
+            script: |
+              pip install wheel
+              pip install twine
 
-  - task: PythonScript@0
-    displayName: "set token auth URL and headers"
-    inputs:
-      scriptSource: 'inline'
-      script: |
-         TOKEN_BASE_URL = 'https://login.microsoftonline.com/' + '$(SVCDirectoryID)' + '/oauth2/token'
-         TOKEN_REQ_HEADERS = {
-         'Content-Type': 'application/x-www-form-urlencoded'}
-         print("##vso[task.setvariable variable=TOKEN_BASE_URL]{b}".format(b=TOKEN_BASE_URL))
-         print("##vso[task.setvariable variable=TOKEN_REQ_HEADERS]{b}".format(b=TOKEN_REQ_HEADERS))
+        - task: DownloadPipelineArtifact@2
+          inputs:
+            buildType: 'current'
+            project: 'devops-for-databricks'
+            buildVersionToDownload: 'latest'
+            artifactName: dfordbx      
+            targetPath: '$(System.ArtifactsDirectory)'
 
-  - task: PythonScript@0
-    displayName: "set token auth URL and token body"
-    name: "auth_tokens"
-    inputs:
-      scriptSource: 'inline'
-      script: |
-        import requests
-        import json
-        import os
-        TOKEN_REQ_BODY = {
-          'grant_type': 'client_credentials',
-          'client_id': '$(SVCApplicationID)',
-          'client_secret': '$(SVCSecretKey)'}
+        - task: TwineAuthenticate@1
+          inputs:
+            artifactFeed: 'devops-for-databricks/devops-for-databricks'
 
-        def dbrks_management_token():
-         TOKEN_REQ_BODY['resource'] = 'https://management.core.windows.net/'
-         response = requests.get('$(TOKEN_BASE_URL)', headers=$(TOKEN_REQ_HEADERS), data=TOKEN_REQ_BODY)
-         if response.status_code == 200:
-          print(response.status_code)
-         else:
-          raise Exception(response.text)
-         return response.json()['access_token']
+        - task: Bash@3
+          displayName: "upload to Artifacts"
+          inputs:
+            targetType: 'inline'
+            script: |
+              python -m twine upload -r devops-for-databricks --skip-existing --config-file $(PYPIRC_PATH) $(System.ArtifactsDirectory)/*.whl
 
-        def dbrks_bearer_token():
-         TOKEN_REQ_BODY['resource'] = '2ff814a6-3304-4ab8-85cb-cd0e6f879c1d'
-         response = requests.get('$(TOKEN_BASE_URL)', headers=$(TOKEN_REQ_HEADERS), data=TOKEN_REQ_BODY)
-         if response.status_code == 200:
-          print(response.status_code)
-         else:
-          raise Exception(response.text)
-         return response.json()['access_token']
+
+  - stage: Deploy
+    displayName: 'Deploy Stage'
+    dependsOn: 
+    - Build
+    - Release
+
+    jobs:
+
+    - job: set_up_databricks_auth
+      steps:
+        - task: PythonScript@0
+          displayName: "Get SVC Auth Tokens"
+          name: "auth_tokens"
+          inputs:
+            scriptSource: 'filePath' 
+            scriptPath: pipelineScripts/authenticate.py
+          env:
+            SVCApplicationID: '$(SVCApplicationID)'
+            SVCSecretKey: '$(SVCSecretKey)'
+            SVCDirectoryID: '$(SVCDirectoryID)'
+
+    - job: upload_notebooks
+      dependsOn: 
+        - set_up_databricks_auth
+      variables: 
+        DBRKS_MANAGEMENT_TOKEN: $[dependencies.set_up_databricks_auth.outputs['auth_tokens.DBRKS_MANAGEMENT_TOKEN']]
+        DBRKS_BEARER_TOKEN: $[dependencies.set_up_databricks_auth.outputs['auth_tokens.DBRKS_BEARER_TOKEN']]
         
-        DBRKS_BEARER_TOKEN = dbrks_bearer_token()
-        DBRKS_MANAGEMENT_TOKEN = dbrks_management_token()
-        print("##vso[task.setvariable variable=DBRKS_BEARER_TOKEN;isOutput=true;]{b}".format(b=DBRKS_BEARER_TOKEN))
-        print("##vso[task.setvariable variable=DBRKS_MANAGEMENT_TOKEN;isOutput=true;]{b}".format(b=DBRKS_MANAGEMENT_TOKEN))
+      steps:
+        - task: PythonScript@0
+          displayName: "upload notebooks to DBX"
+          inputs:
+            scriptSource: 'filePath' 
+            scriptPath: pipelineScripts/upload_notebooks_to_dbx.py
+          env:
+            DBRKS_BEARER_TOKEN: $(DBRKS_BEARER_TOKEN)
+            DBRKS_MANAGEMENT_TOKEN: $(DBRKS_MANAGEMENT_TOKEN)
+            DBRKS_SUBSCRIPTION_ID: '$(SubscriptionID)'
+            DBRKS_INSTANCE: '$(DBXInstance)'
+            DBRKS_RESOURCE_GROUP: '$(ResourceGroup)'
+            DBRKS_WORKSPACE_NAME: '$(WorkspaceName)'
+            DefaultWorkingDirectory: $(System.DefaultWorkingDirectory)
 
-# - job: create_cluster
-#   dependsOn: 
-#      - set_up_databricks_auth
-#   variables: 
-#      DBRKS_MANAGEMENT_TOKEN: $[dependencies.set_up_databricks_auth.outputs['auth_tokens.DBRKS_MANAGEMENT_TOKEN']]
-#      DBRKS_BEARER_TOKEN: $[dependencies.set_up_databricks_auth.outputs['auth_tokens.DBRKS_BEARER_TOKEN']]
 
-#   steps:
-#     - task: AzureKeyVault@1
-#       inputs:
-#         azureSubscription: '[subscriptionid]'
-#         KeyVaultName: 'devops-for-dbx-kv'
-#         SecretsFilter: '*'
-#         RunAsPreJob: false
-       
-#     - task: Bash@3
-#       inputs:
-#        targetType: 'inline'
-#        script: 'ls'
+    - job: upload_wheel_to_databricks
+      dependsOn: 
+        - set_up_databricks_auth
 
-#     - task: PythonScript@0
-#       displayName: "create cluster"
-#       inputs:
-#         scriptSource: 'filePath' 
-#         scriptPath: pipelineScripts/create_cluster.py
-#       env:
-#         DBRKS_BEARER_TOKEN: $(DBRKS_BEARER_TOKEN)
-#         DBRKS_MANAGEMENT_TOKEN: $(DBRKS_MANAGEMENT_TOKEN)
-#         DefaultWorkingDirectory: $(System.DefaultWorkingDirectory)
+      variables: 
+        DBRKS_MANAGEMENT_TOKEN: $[dependencies.set_up_databricks_auth.outputs['auth_tokens.DBRKS_MANAGEMENT_TOKEN']]
+        DBRKS_BEARER_TOKEN: $[dependencies.set_up_databricks_auth.outputs['auth_tokens.DBRKS_BEARER_TOKEN']]
 
-- job: upload_notebooks
-  dependsOn: 
-     - set_up_databricks_auth
-    #  - create_cluster
-  variables: 
-     DBRKS_MANAGEMENT_TOKEN: $[dependencies.set_up_databricks_auth.outputs['auth_tokens.DBRKS_MANAGEMENT_TOKEN']]
-     DBRKS_BEARER_TOKEN: $[dependencies.set_up_databricks_auth.outputs['auth_tokens.DBRKS_BEARER_TOKEN']]
+      steps:  
+        - task: DownloadPipelineArtifact@2
+          inputs:
+            buildType: 'current'
+            project: 'devops-for-databricks'
+            buildVersionToDownload: 'latest'
+            artifactName: dfordbx      
+            targetPath: '$(System.ArtifactsDirectory)'
 
-  steps:
-    - task: AzureKeyVault@1
-      inputs:
+        - task: PythonScript@0
+          displayName: "upload wheel to DBFS"
+          inputs:
+            scriptSource: 'filePath' 
+            scriptPath: pipelineScripts/upload_wheel_to_dbfs.py
+          env:
+            DBRKS_BEARER_TOKEN: $(DBRKS_BEARER_TOKEN)
+            DBRKS_MANAGEMENT_TOKEN: $(DBRKS_MANAGEMENT_TOKEN)
+            DBRKS_SUBSCRIPTION_ID: '$(SubscriptionID)'
+            DBRKS_INSTANCE: '$(DBXInstance)'
+            DBRKS_RESOURCE_GROUP: '$(ResourceGroup)'
+            DBRKS_WORKSPACE_NAME: '$(WorkspaceName)'
+            SYSTEM_ARTIFACTSDIRECTORY: $(System.ArtifactsDirectory)
+
+
+    - job: create_cluster
+      dependsOn: 
+        - set_up_databricks_auth
+        - upload_wheel_to_databricks
+      variables: 
+        DBRKS_MANAGEMENT_TOKEN: $[dependencies.set_up_databricks_auth.outputs['auth_tokens.DBRKS_MANAGEMENT_TOKEN']]
+        DBRKS_BEARER_TOKEN: $[dependencies.set_up_databricks_auth.outputs['auth_tokens.DBRKS_BEARER_TOKEN']]
+
+      steps:       
+        - task: PythonScript@0
+          displayName: "create cluster"
+          name: "create_cluster"
+          inputs:
+            scriptSource: 'filePath' 
+            scriptPath: pipelineScripts/create_cluster.py
+          env:
+            DBRKS_BEARER_TOKEN: $(DBRKS_BEARER_TOKEN)
+            DBRKS_MANAGEMENT_TOKEN: $(DBRKS_MANAGEMENT_TOKEN)
+            DBRKS_SUBSCRIPTION_ID: '$(SubscriptionID)'
+            DBRKS_INSTANCE: '$(DBXInstance)'
+            DBRKS_RESOURCE_GROUP: '$(ResourceGroup)'
+            DBRKS_WORKSPACE_NAME: '$(WorkspaceName)'
+            DefaultWorkingDirectory: $(System.DefaultWorkingDirectory)
+
+
+    - job: install_wheel_in_databricks_cluster
+      dependsOn: 
+        - set_up_databricks_auth
+        - create_cluster
+        - upload_wheel_to_databricks
+      variables: 
+        DBRKS_MANAGEMENT_TOKEN: $[dependencies.set_up_databricks_auth.outputs['auth_tokens.DBRKS_MANAGEMENT_TOKEN']]
+        DBRKS_BEARER_TOKEN: $[dependencies.set_up_databricks_auth.outputs['auth_tokens.DBRKS_BEARER_TOKEN']]
+        DBRKS_CLUSTER_ID: $[dependencies.create_cluster.outputs['create_cluster.DBRKS_CLUSTER_ID']]
+
+      steps:         
+        - task: PythonScript@0
+          displayName: "install wheel"
+          inputs:
+            scriptSource: 'filepath'
+            scriptPath: pipelineScripts/install_wheel.py
+          env:
+            DBRKS_BEARER_TOKEN: $(DBRKS_BEARER_TOKEN)
+            DBRKS_MANAGEMENT_TOKEN: $(DBRKS_MANAGEMENT_TOKEN)
+            DBRKS_CLUSTER_ID: $(DBRKS_CLUSTER_ID')
+            DBRKS_SUBSCRIPTION_ID: '$(SubscriptionID)'
+            DBRKS_INSTANCE: '$(DBXInstance)'
+            DBRKS_RESOURCE_GROUP: '$(ResourceGroup)'
+            DBRKS_WORKSPACE_NAME: '$(WorkspaceName)'
         
-        
-        
-        : '[subscriptionid]'
-        KeyVaultName: 'devops-for-dbx-kv'
-        SecretsFilter: '*'
-        RunAsPreJob: false
-       
-    - task: Bash@3
-      inputs:
-       targetType: 'inline'
-       script: 'ls'
+        - task: PythonScript@0
+          displayName: "restart cluster"
+          inputs:
+            scriptSource: 'filepath'
+            scriptPath: pipelineScripts/restart_cluster.py
+          env:
+            DBRKS_BEARER_TOKEN: $(DBRKS_BEARER_TOKEN)
+            DBRKS_MANAGEMENT_TOKEN: $(DBRKS_MANAGEMENT_TOKEN)
+            DBRKS_CLUSTER_ID: $(DBRKS_CLUSTER_ID')
+            DBRKS_SUBSCRIPTION_ID: '$(SubscriptionID)'
+            DBRKS_INSTANCE: '$(DBXInstance)'
+            DBRKS_RESOURCE_GROUP: '$(ResourceGroup)'
+            DBRKS_WORKSPACE_NAME: '$(WorkspaceName)'
+      
+        - task: PythonScript@0
+          displayName: "check wheel status"
+          inputs:
+            scriptSource: 'filepath'
+            scriptPath: pipelineScripts/check_wheel_status.py
+          env:
+            DBRKS_BEARER_TOKEN: $(DBRKS_BEARER_TOKEN)
+            DBRKS_MANAGEMENT_TOKEN: $(DBRKS_MANAGEMENT_TOKEN)
+            DBRKS_CLUSTER_ID: $(DBRKS_CLUSTER_ID')
+            DBRKS_SUBSCRIPTION_ID: '$(SubscriptionID)'
+            DBRKS_INSTANCE: '$(DBXInstance)'
+            DBRKS_RESOURCE_GROUP: '$(ResourceGroup)'
+            DBRKS_WORKSPACE_NAME: '$(WorkspaceName)'
+            
+    - job: delete_cluster
+      dependsOn: 
+        - set_up_databricks_auth
+        - create_cluster
+        - install_wheel_in_databricks_cluster
+      variables: 
+        DBRKS_MANAGEMENT_TOKEN: $[dependencies.set_up_databricks_auth.outputs['auth_tokens.DBRKS_MANAGEMENT_TOKEN']]
+        DBRKS_BEARER_TOKEN: $[dependencies.set_up_databricks_auth.outputs['auth_tokens.DBRKS_BEARER_TOKEN']]
+        DBRKS_CLUSTER_ID: $[dependencies.create_cluster.outputs['create_cluster.DBRKS_CLUSTER_ID']]
 
-    - task: PythonScript@0
-      displayName: "uplode notebooks to DBX"
-      inputs:
-        scriptSource: 'filePath' 
-        scriptPath: pipelineScripts/upload_notebooks_to_dbx.py
-      env:
-        DBRKS_BEARER_TOKEN: $(DBRKS_BEARER_TOKEN)
-        DBRKS_MANAGEMENT_TOKEN: $(DBRKS_MANAGEMENT_TOKEN)
-        DefaultWorkingDirectory: $(System.DefaultWorkingDirectory)
-
-
-- job: upload_wheel_to_databricks
-  dependsOn: 
-     - set_up_databricks_auth
-         #  - create_cluster
-  variables: 
-     DBRKS_MANAGEMENT_TOKEN: $[dependencies.set_up_databricks_auth.outputs['auth_tokens.DBRKS_MANAGEMENT_TOKEN']]
-     DBRKS_BEARER_TOKEN: $[dependencies.set_up_databricks_auth.outputs['auth_tokens.DBRKS_BEARER_TOKEN']]
-  steps:
-
-    - task: AzureKeyVault@1
-      inputs:
-        azureSubscription: '[subscription]'
-        KeyVaultName: 'devops-for-dbx-kv'
-        SecretsFilter: '*'
-        RunAsPreJob: false
-
-    - task: CmdLine@2
-      displayName: "install python packages"    
-      inputs:
-        script: |
-          pip3 install pytest-cov
-          pip3 install pytest
-          pip3 install pyspark
-          pip3 install mock
-          pip3 install requests
-          pip3 install azure-identity
-          pip3 install azure.keyvault.secrets
-
-    - task:  CmdLine@2
-      displayName: "install wheel setup tools"
-      inputs:
-        script: |
-          python -m pip install --user --upgrade setuptools wheel
-
-    - task:  CmdLine@2
-      displayName: "create wheel"
-      inputs:
-        script: |
-          cd "wheel"
-          python setup.py sdist bdist_wheel
-
-
-    - task: PythonScript@0
-      displayName: "upload wheel to DBFS"
-      inputs:
-        scriptSource: 'filePath' 
-        scriptPath: pipelineScripts/upload_wheel_to_dbfs.py
-      env:
-        DBRKS_BEARER_TOKEN: $(DBRKS_BEARER_TOKEN)
-        DBRKS_MANAGEMENT_TOKEN: $(DBRKS_MANAGEMENT_TOKEN)
-        DefaultWorkingDirectory: $(System.DefaultWorkingDirectory)
-
-
-    - task: PythonScript@0
-      displayName: "uninstall wheel from cluster"
-      inputs:
-        scriptSource: 'filepath'
-        scriptPath: pipelineScripts/uninstall_wheel_from_cluster.py
-      env:
-        DBRKS_BEARER_TOKEN: $(DBRKS_BEARER_TOKEN)
-        DBRKS_MANAGEMENT_TOKEN: $(DBRKS_MANAGEMENT_TOKEN)
-        DBX-WORKSPACE-URL: $(DbxWorkspaceUrl)
-     
-    - task: PythonScript@0
-      displayName: "restart cluster"
-      inputs:
-        scriptSource: 'filepath'
-        scriptPath: pipelineScripts/restart_cluster.py
-      env:
-        DBRKS_BEARER_TOKEN: $(DBRKS_BEARER_TOKEN)
-        DBRKS_MANAGEMENT_TOKEN: $(DBRKS_MANAGEMENT_TOKEN)
-  
-    - task: PythonScript@0
-      displayName: "install wheel"
-      inputs:
-        scriptSource: 'filepath'
-        scriptPath: pipelineScripts/install_wheel.py
-      env:
-        DBRKS_BEARER_TOKEN: $(DBRKS_BEARER_TOKEN)
-        DBRKS_MANAGEMENT_TOKEN: $(DBRKS_MANAGEMENT_TOKEN)
-  
-    - task: PythonScript@0
-      displayName: "check wheel status"
-      inputs:
-        scriptSource: 'filepath'
-        scriptPath: pipelineScripts/check_wheel_status.py
-      env:
-        DBRKS_BEARER_TOKEN: $(DBRKS_BEARER_TOKEN)
-        DBRKS_MANAGEMENT_TOKEN: $(DBRKS_MANAGEMENT_TOKEN)
+      steps:                   
+        - task: PythonScript@0
+          displayName: "delete cluster"
+          inputs:
+            scriptSource: 'filepath'
+            scriptPath: pipelineScripts/delete_cluster.py
+          env:
+            DBRKS_BEARER_TOKEN: $(DBRKS_BEARER_TOKEN)
+            DBRKS_MANAGEMENT_TOKEN: $(DBRKS_MANAGEMENT_TOKEN)
+            DBRKS_CLUSTER_ID: $(DBRKS_CLUSTER_ID')
+            DBRKS_SUBSCRIPTION_ID: '$(SubscriptionID)'
+            DBRKS_INSTANCE: '$(DBXInstance)'
+            DBRKS_RESOURCE_GROUP: '$(ResourceGroup)'
+            DBRKS_WORKSPACE_NAME: '$(WorkspaceName)'
