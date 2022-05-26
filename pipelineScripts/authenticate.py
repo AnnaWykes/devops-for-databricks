@@ -10,7 +10,7 @@ TOKEN_REQ_BODY = {
        'client_id': os.environ['SVCApplicationID'],
        'client_secret': os.environ['SVCSecretKey']}
 
-
+print("TOKEN_REQ_BODY" + TOKEN_REQ_BODY)
 
 def dbrks_management_token():
         TOKEN_REQ_BODY['resource'] = 'https://management.core.windows.net/'
