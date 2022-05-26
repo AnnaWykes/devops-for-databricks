@@ -67,5 +67,7 @@ jobs:
         SubscriptionID: ${{ steps.getAzureSecrets.outputs.SubscriptionID }}
         SVCApplicationID: ${{ steps.getAzureSecrets.outputs.SVCApplicationID }}
         SVCDirectoryID: ${{ steps.getAzureSecrets.outputs.SVCDirectoryID }}
-        SVCSecretKey: ${{ steps.getAzureSecrets.outputs.SVCSecretKey }}
+        SVCSecretKey: ${{ steps.getAzureSecrets.outputs.SVCSecretKeys }}
         WorkspaceName: ${{ steps.getAzureSecrets.outputs.WorkspaceName }}
+        
+  
