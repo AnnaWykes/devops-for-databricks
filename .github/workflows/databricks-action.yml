@@ -62,12 +62,12 @@ jobs:
       run: |
         python pipelineScripts/authenticate.py
       env: 
-        DBXInstance: ${{ steps.getAzureSecrets.outputs.DBXInstance }}
-        ResourceGroup: ${{ steps.getAzureSecrets.outputs.ResourceGroup }}
-        SubscriptionID: ${{ steps.getAzureSecrets.outputs.SubscriptionID }}
-        SVCApplicationID: ${{ steps.getAzureSecrets.outputs.SVCApplicationID }}
-        SVCDirectoryID: ${{ steps.getAzureSecrets.outputs.SVCDirectoryID }}
-        SVCSecretKey: ${{ steps.getAzureSecrets.outputs.SVCSecretKeys }}
-        WorkspaceName: ${{ steps.getAzureSecrets.outputs.WorkspaceName }}
+        DBXInstance: "adb-3749926321376557.17"  #${{ steps.getAzureSecrets.outputs.DBXInstance }}
+        ResourceGroup: "rgdevopsfordbxuksdev" #${{ steps.getAzureSecrets.outputs.ResourceGroup }}
+        SubscriptionID: "167ab168-84f9-43c4-b197-8bfbf27bf6d1" #${{ steps.getAzureSecrets.outputs.SubscriptionID }}
+        SVCApplicationID: "35b5980f-eada-45ec-9f59-55685da9b84a" #${{ steps.getAzureSecrets.outputs.SVCApplicationID }}
+        SVCDirectoryID: "5a817c6b-586d-4c36-ae1f-45feb48cbf2d" #${{ steps.getAzureSecrets.outputs.SVCDirectoryID }}
+        SVCSecretKey: "yQi8Q~PDwWlkKSvCia9qbKe2lq7X8oVJV_eOFaVZ" # ${{ steps.getAzureSecrets.outputs.SVCSecretKeys }}
+        WorkspaceName: "devopsfordbx-dbx-01-uks-dev" #${{ steps.getAzureSecrets.outputs.WorkspaceName }}
         
   
