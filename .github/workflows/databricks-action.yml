@@ -29,7 +29,7 @@ jobs:
         creds: ${{ secrets.AZURE_CREDENTIALS }}
     - uses: Azure/get-keyvault-secrets@v1
       with:
-        keyvault: "my Vault" # name of key vault in Azure portal
+        keyvault: "devopsfordbxkv01dev" # name of key vault in Azure portal
         secrets: 'DBXInstance, ResourceGroup, SubscriptionID, SVCApplicationID, SVCDirectoryID, SVCSecretKey, WorkspaceName'  # comma separated list of secret keys to fetch from key vault 
       id: test
     - name: Install dependencies
