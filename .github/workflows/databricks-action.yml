@@ -30,18 +30,25 @@ jobs:
         python -m pip install flake8 pytest pyspark pytest-cov requests
         python -m pip install --user --upgrade setuptools wheel
         if [ -f requirements.txt ]; then pip install -r requirements.txt; fi
-    - name: Create wheel
-      run: |
-        cd "wheel"
-        python setup.py sdist bdist_wheel
     - name: Lint with flake8
       run: |
         # stop the build if there are Python syntax errors or undefined names
         flake8 . --count --select=E9,F63,F7,F82 --show-source --statistics
         # exit-zero treats all errors as warnings. The GitHub editor is 127 chars wide
         flake8 . --count --exit-zero --max-complexity=10 --max-line-length=127 --statistics
-    - name: Test with pytest
+    - name: Create wheel
       run: |
+        cd wheel
+        python setup.py sdist bdist_wheel
+    - name: Install wheel
+      run: |
+        cd "wheel"
+        cd dist
+        pip uninstall -y dfordbx-0.0.1-py3-none-any.whl
+        pip install dfordbx-0.0.1-py3-none-any.whl
+    - name: run wheel tests
+      run: |
+        cd wheel/tests/unit
         pytest
     - name: run script
       run: |
