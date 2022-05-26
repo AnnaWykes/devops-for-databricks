@@ -43,9 +43,5 @@ print("##vso[task.setvariable variable=DBRKS_BEARER_TOKEN;isOutput=true;]{b}".fo
 print("##vso[task.setvariable variable=DBRKS_MANAGEMENT_TOKEN;isOutput=true;]{b}".format(b=DBRKS_MANAGEMENT_TOKEN))
 
 
-env_file = os.getenv('GITHUB_ENV')
 
-with open(env_file, "a") as myfile:
-    myfile.write(f"DBRKS_BEARER_TOKEN={os.environ['DBRKS_BEARER_TOKEN']}\n")
-    myfile.write(f"DBRKS_MANAGEMENT_TOKEN={os.environ['DBRKS_MANAGEMENT_TOKEN']}")
    
