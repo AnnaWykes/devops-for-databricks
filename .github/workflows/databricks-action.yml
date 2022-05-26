@@ -58,7 +58,7 @@ jobs:
       run: |
         cd wheel/tests/unit
         pytest
-    - name: run script
+    - name: authenticate with databricks api
       run: |
         python pipelineScripts/authenticate.py
       env: 
@@ -69,5 +69,19 @@ jobs:
         SVCDirectoryID: ${{ steps.getAzureSecrets.outputs.SVCDirectoryID }}
         SVCSecretKey: ${{ steps.getAzureSecrets.outputs.SVCSecretKey }}
         WorkspaceName: ${{ steps.getAzureSecrets.outputs.WorkspaceName }}
+
+    - name: upload wheel to dbfs
+      run: |
+        python pipelineScripts/upload_wheel_to_dbfs.py
+      env: 
+        DBXInstance: ${{ steps.getAzureSecrets.outputs.DBXInstance }}
+        ResourceGroup: ${{ steps.getAzureSecrets.outputs.ResourceGroup }}
+        SubscriptionID: ${{ steps.getAzureSecrets.outputs.SubscriptionID }}
+        SVCApplicationID: ${{ steps.getAzureSecrets.outputs.SVCApplicationID }}
+        SVCDirectoryID: ${{ steps.getAzureSecrets.outputs.SVCDirectoryID }}
+        SVCSecretKey: ${{ steps.getAzureSecrets.outputs.SVCSecretKey }}
+        WorkspaceName: ${{ steps.getAzureSecrets.outputs.WorkspaceName }}
+        SYSTEM_ARTIFACTSDIRECTORY: "wheel/dist"
+        
         
   
