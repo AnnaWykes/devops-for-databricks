@@ -27,11 +27,11 @@ jobs:
     - uses: Azure/login@v1
       with:
         creds: ${{ secrets.AZURE_CREDENTIALS }}
-#     - uses: Azure/get-keyvault-secrets@v1
-#       with:
-#         keyvault: "devopsfordbxkv01dev" # name of key vault in Azure portal
-#         secrets: 'DBXInstance, ResourceGroup, SubscriptionID, SVCApplicationID, SVCDirectoryID, SVCSecretKey, WorkspaceName'  # comma separated list of secret keys to fetch from key vault 
-#       id: getAzureSecrets
+    - uses: Azure/get-keyvault-secrets@v1
+      with:
+        keyvault: "devopsfordbxkv01dev" # name of key vault in Azure portal
+        secrets: 'DBXInstance, ResourceGroup, SubscriptionID, SVCApplicationID, SVCDirectoryID, SVCSecretKey, WorkspaceName'  # comma separated list of secret keys to fetch from key vault 
+      id: getAzureSecrets
     - name: Install dependencies
       run: |
         python -m pip install --upgrade pip
