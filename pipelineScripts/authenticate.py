@@ -23,6 +23,7 @@ def dbrks_management_token():
 
 
 def dbrks_bearer_token():
+        print(TOKEN_REQ_BODY)
         TOKEN_REQ_BODY['resource'] = '2ff814a6-3304-4ab8-85cb-cd0e6f879c1d'
         response = requests.get(TOKEN_BASE_URL, headers=TOKEN_REQ_HEADERS, data=TOKEN_REQ_BODY)
         if response.status_code == 200:
