@@ -74,16 +74,15 @@ jobs:
       run: |
         python pipelineScripts/upload_wheel_to_dbfs.py
       env: 
-        DBXInstance: ${{ steps.getAzureSecrets.outputs.DBXInstance }}
-        ResourceGroup: ${{ steps.getAzureSecrets.outputs.ResourceGroup }}
-        SubscriptionID: ${{ steps.getAzureSecrets.outputs.SubscriptionID }}
-        SVCApplicationID: ${{ steps.getAzureSecrets.outputs.SVCApplicationID }}
-        SVCDirectoryID: ${{ steps.getAzureSecrets.outputs.SVCDirectoryID }}
-        SVCSecretKey: ${{ steps.getAzureSecrets.outputs.SVCSecretKey }}
-        WorkspaceName: ${{ steps.getAzureSecrets.outputs.WorkspaceName }}
         SYSTEM_ARTIFACTSDIRECTORY: "wheel/dist"
         DBRKS_SUBSCRIPTION_ID: ${{ steps.getAzureSecrets.outputs.SubscriptionID }}
         DBRKS_RESOURCE_GROUP: ${{ steps.getAzureSecrets.outputs.ResourceGroup }}
+        DBRKS_WORKSPACE_NAME: ${{ steps.getAzureSecrets.outputs.WorkspaceName }}
+        DBRKS_BEARER_TOKEN: $(DBRKS_BEARER_TOKEN)
+        DBRKS_MANAGEMENT_TOKEN: $(DBRKS_MANAGEMENT_TOKEN)
+        DBRKS_INSTANCE: ${{ steps.getAzureSecrets.outputs.DBXInstance }}
+                
+
         
         
   
