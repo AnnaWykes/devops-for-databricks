@@ -83,6 +83,7 @@ jobs:
         WorkspaceName: ${{ steps.getAzureSecrets.outputs.WorkspaceName }}
         SYSTEM_ARTIFACTSDIRECTORY: "wheel/dist"
         DBRKS_SUBSCRIPTION_ID: ${{ steps.getAzureSecrets.outputs.SubscriptionID }}
+        DBRKS_RESOURCE_GROUP: ${{ steps.getAzureSecrets.outputs.ResourceGroup }}
         
         
   
