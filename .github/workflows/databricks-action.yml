@@ -83,7 +83,7 @@ jobs:
         
     - name: create cluster
       run: |
-        python /pipelineScripts/create_cluster.py
+        python pipelineScripts/create_cluster.py
       env: 
         DefaultWorkingDirectory: ""
         DBRKS_SUBSCRIPTION_ID: ${{ steps.getAzureSecrets.outputs.SubscriptionID }}
