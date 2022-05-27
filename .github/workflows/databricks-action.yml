@@ -59,6 +59,7 @@ jobs:
         cd wheel/tests/unit
         pytest
     - name: authenticate with databricks api
+      id: "databricksauth"
       run: |
         python pipelineScripts/authenticate.py
       env: 
@@ -78,8 +79,8 @@ jobs:
         DBRKS_SUBSCRIPTION_ID: ${{ steps.getAzureSecrets.outputs.SubscriptionID }}
         DBRKS_RESOURCE_GROUP: ${{ steps.getAzureSecrets.outputs.ResourceGroup }}
         DBRKS_WORKSPACE_NAME: ${{ steps.getAzureSecrets.outputs.WorkspaceName }}
-        DBRKS_BEARER_TOKEN: $(DBRKS_BEARER_TOKEN)
-        DBRKS_MANAGEMENT_TOKEN: $(DBRKS_MANAGEMENT_TOKEN)
+        DBRKS_BEARER_TOKEN: $(steps.databricksauth.DBRKS_BEARER_TOKEN)
+        DBRKS_MANAGEMENT_TOKEN: $(steps.databricksauth.DBRKS_MANAGEMENT_TOKEN)
         DBRKS_INSTANCE: ${{ steps.getAzureSecrets.outputs.DBXInstance }}
                 
 
