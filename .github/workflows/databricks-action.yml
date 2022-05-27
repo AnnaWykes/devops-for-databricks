@@ -82,6 +82,7 @@ jobs:
         SVCSecretKey: ${{ steps.getAzureSecrets.outputs.SVCSecretKey }}
         WorkspaceName: ${{ steps.getAzureSecrets.outputs.WorkspaceName }}
         SYSTEM_ARTIFACTSDIRECTORY: "wheel/dist"
+        DBRKS_SUBSCRIPTION_ID: ${{ steps.getAzureSecrets.outputs.SubscriptionID }}
         
         
   
