@@ -33,7 +33,7 @@ def create_cluster():
     env_file = os.getenv('GITHUB_ENV')
 
     with open(env_file, "a") as myfile:
-      myfile.write(f"DBRKS_CLUSTER_ID={os.environ['cluster_id']}")
+      myfile.write(f"DBRKS_CLUSTER_ID={os.environ['DBRKS_CLUSTER_ID']}")
        
 
 def list_clusters():
