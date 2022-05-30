@@ -91,7 +91,7 @@ jobs:
         DBRKS_WORKSPACE_NAME: ${{ steps.getAzureSecrets.outputs.WorkspaceName }}
         DBRKS_INSTANCE: ${{ steps.getAzureSecrets.outputs.DBXInstance }}
 
-- name: Install Wheel
+    - name: Install Wheel
       run: |
         python pipelineScripts/install_wheel.py
       env: 
