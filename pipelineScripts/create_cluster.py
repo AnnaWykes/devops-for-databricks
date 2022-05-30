@@ -29,6 +29,11 @@ def create_cluster():
     
     os.environ["DBRKS_CLUSTER_ID"] = response.json()["cluster_id"]    
     print("##vso[task.setvariable variable=DBRKS_CLUSTER_ID;isOutput=true;]{b}".format(b=os.environ["DBRKS_CLUSTER_ID"]))
+    
+    env_file = os.getenv('GITHUB_ENV')
+
+    with open(env_file, "a") as myfile:
+      myfile.write(f"DBRKS_CLUSTER_ID={os.environ['DBRKS_CLUSTER_ID']}")
        
 
 def list_clusters():
