@@ -90,6 +90,16 @@ jobs:
         DBRKS_RESOURCE_GROUP: ${{ steps.getAzureSecrets.outputs.ResourceGroup }}
         DBRKS_WORKSPACE_NAME: ${{ steps.getAzureSecrets.outputs.WorkspaceName }}
         DBRKS_INSTANCE: ${{ steps.getAzureSecrets.outputs.DBXInstance }}
+
+- name: Install Wheel
+      run: |
+        python pipelineScripts/install_wheel.py
+      env: 
+        DefaultWorkingDirectory: ""
+        DBRKS_SUBSCRIPTION_ID: ${{ steps.getAzureSecrets.outputs.SubscriptionID }}
+        DBRKS_RESOURCE_GROUP: ${{ steps.getAzureSecrets.outputs.ResourceGroup }}
+        DBRKS_WORKSPACE_NAME: ${{ steps.getAzureSecrets.outputs.WorkspaceName }}
+        DBRKS_INSTANCE: ${{ steps.getAzureSecrets.outputs.DBXInstance }}
                 
 
         
