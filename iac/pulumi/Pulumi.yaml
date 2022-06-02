@@ -1,0 +1,6 @@
+name: pulumi-databricks
+runtime:
+  name: python
+  options:
+    virtualenv: venv
+description: A minimal Azure Native & Databricks Python Pulumi program

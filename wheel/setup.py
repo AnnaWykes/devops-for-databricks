@@ -4,7 +4,7 @@ setuptools.setup(
     name="dfordbx",
     version="0.0.1",
     author="Anna Wykes",
-    author_email="anna@advancinganalytics.com",
+    author_email="email",
     description="DevOps for Databricks",
     long_description="DevOps for Databricks",
     long_description_content_type="text/markdown",
