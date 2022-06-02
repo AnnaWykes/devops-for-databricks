@@ -1,0 +1,137 @@
+trigger: none
+
+variables:
+  env: dev                                                          # name of the enviroment, used in the workingDirectory and backend key
+  app_name: 'devopsfordatabricks'                                   # name of the app/project/resource
+  terraform_directory: 'iac/terraform/databricks-terraform/dev'         # working directory of terraform configuration files
+  terraform_version: "1.1.3"                                       # version of terraform, used in backend key
+
+  service_connection: 'service-connection-devops-4-dbx'                           # name of the devops service connection
+  key_vault_name: "devops-for-dbx-state-kv"                         # name of the key vault to use
+  tf_state_backend_resource_group_name: 'devopsfordatabricks-terraform-state'      # name of the resource group for the terraform state file
+  tf_state_backend_resource_group_location: 'UK South'              # location of the resource group for the terraform state file
+  tf_state_backend_storage_account_name: 'devops4dbxterraformstate'    # name of the storage account for the terraform state file
+  tf_state_backend_container_name: 'terraformstate'            # name of the container for the terraform state file
+  tf_state_backend_key_name: 'terraform.tfstate' # name of the key for the terraform state file: <app_name>.<evn>.terraform.tfstate
+
+pool:
+  vmImage: 'ubuntu-latest'
+
+# pool: selfhostedpool
+
+stages :
+  # Validate & Plan Terraform Stage
+  - stage: Validate_Plan_Terraform
+    jobs:
+    - job: Validate_Plan_Terraform
+      displayName: "Validate & Plan Terraform > install, init, validate and plan"
+      continueOnError: false
+      steps:
+      - checkout: self
+
+      - task: AzureKeyVault@1
+        displayName: Retrieve key vault secrets
+        inputs:
+            azureSubscription: $(service_connection)
+            keyVaultName: $(key_vault_name)
+            secretsFilter: 'ARM-CLIENT-ID, ARM-CLIENT-SECRET, ARM-TENANT-ID, ARM-SUBSCRIPTION-ID'
+            runAsPreJob: false
+
+      - task: TerraformInstaller@0
+        displayName: Install Terraform
+        inputs:
+          terraformVersion: $(terraform_version)
+
+
+      - task: TerraformTaskV3@3
+        displayName: Terraform Init
+        inputs:
+          provider: 'azurerm'
+          command: 'init'
+          workingDirectory: '$(System.DefaultWorkingDirectory)/$(terraform_directory)'
+          backendServiceArm: '$(service_connection)'
+          backendAzureRmResourceGroupName: 'devopsfordatabricks-terraform-state'
+          backendAzureRmStorageAccountName: 'devops4dbxterraformstate'
+          backendAzureRmContainerName: 'terraformstate'
+          backendAzureRmKey: 'terraform.tfstate'
+
+      - task: TerraformTaskV3@3
+        displayName: Terraform Validate
+        inputs:
+          provider: 'azurerm'
+          command: 'validate'
+          workingDirectory: '$(System.DefaultWorkingDirectory)/$(terraform_directory)'
+
+      - task: TerraformTaskV3@3
+        displayName: Terraform Plan
+        inputs:
+          provider: 'azurerm'
+          command: 'plan'
+          workingDirectory: '$(System.DefaultWorkingDirectory)/$(terraform_directory)'
+          backendServiceArm: '$(service_connection)'
+          environmentServiceNameAzureRM: '$(service_connection)'
+
+  # Deploy Terraform
+  - stage: Deploy_Terraform
+    dependsOn: [Validate_Plan_Terraform]
+    condition: succeeded('Validate_Plan_Terraform')
+    jobs:
+    - job: Deploy_Terraform
+      displayName: "Deploy Terraform > install, init, plan and apply"
+      continueOnError: false
+      steps:
+      - checkout: self
+
+      - task: AzureKeyVault@1
+        displayName: Retrieve key vault secrets
+        inputs:
+            azureSubscription: $(service_connection)
+            keyVaultName: $(key_vault_name)
+            secretsFilter: 'ARM-CLIENT-ID, ARM-CLIENT-SECRET, ARM-TENANT-ID, ARM-SUBSCRIPTION-ID'
+            runAsPreJob: false
+
+      - task: TerraformInstaller@0
+        displayName: Install Terraform
+        inputs:
+          terraformVersion: $(terraform_version)
+
+      - task: TerraformTaskV3@3
+        displayName: Terraform Init
+        inputs:
+          provider: 'azurerm'
+          command: 'init'
+          workingDirectory: '$(System.DefaultWorkingDirectory)/$(terraform_directory)'
+          backendServiceArm: '$(service_connection)'
+          backendAzureRmResourceGroupName: 'devopsfordatabricks-terraform-state'
+          backendAzureRmStorageAccountName: 'devops4dbxterraformstate'
+          backendAzureRmContainerName: 'terraformstate'
+          backendAzureRmKey: 'terraform.tfstate'
+
+      - task: TerraformTaskV3@3
+        displayName: Terraform Validate
+        inputs:
+          provider: 'azurerm'
+          command: 'validate'
+          workingDirectory: '$(System.DefaultWorkingDirectory)/$(terraform_directory)'
+
+      - task: TerraformTaskV3@3
+        displayName: Terraform Plan
+        inputs:
+          provider: 'azurerm'
+          command: 'plan'
+          workingDirectory: '$(System.DefaultWorkingDirectory)/$(terraform_directory)'
+          backendServiceArm: '$(service_connection)'
+          environmentServiceNameAzureRM: '$(service_connection)'
+      
+      
+      - task: TerraformTaskV3@3
+        displayName: Terraform Plan
+        inputs:
+          provider: 'azurerm'
+          command: 'apply'
+          workingDirectory: '$(System.DefaultWorkingDirectory)/$(terraform_directory)'
+          backendServiceArm: '$(service_connection)'
+          environmentServiceNameAzureRM: '$(service_connection)'
+          
+
+ 
