@@ -1,0 +1,13 @@
+# Ignore local .terraform directories
+**/.terraform/*
+**/backend_config/*
+
+# Ignore .tfstate files
+*.tfstate
+*.tfstate.*
+*.tfstate.backup
+*.tfstate.lock.info
+*.terraform.lock.hcl
+
+# Ignore crash log files
+crash.log
