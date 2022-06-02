@@ -30,5 +30,3 @@ For more examples visit https://www.pulumi.com/registry/packages/databricks/api-
 Run "pulumi up" in a terminal that is in the correct folder
 
 
-dapi9b481395d582fd42d95e984b05b1d615
-
