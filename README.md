@@ -1,7 +1,8 @@
 # devops-for-databricks
 
+IaC folder contains examples of IaC for Databricks using Terraform and Pulumi
 
-## To run the Demo
+## To run Databricks REST API the Demo
 	
 1.	Create a project in Azure DevOps called: devops-for-databricks
 2.	Create an Empty Azure DevOps Repo as clone of this Github repo
