@@ -79,9 +79,9 @@ To execuate the Terraform on local machine you will need to add a `backend_confi
     ```
 
 ### Change Terraform Backend State
-1) Amend the 'backend azurerm key' in `providers_azure.tf` file using naming convention `<app_name>.<evn>.terraform.tfstate`.
+1) Amend the 'backend azurerm key' in `providers_azure.tf` file.
 
-2) For local execution amend the 'tf_state_backend_key_name' in `backend_config.tfvars` file using the same naming convention `<app_name>.<evn>.terraform.tfstate`.
+2) For local execution amend the 'tf_state_backend_key_name' in `backend_config.tfvars` file 
 
 <br>
 
